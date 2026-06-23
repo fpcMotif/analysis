@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 1 · Your First Lean Proof</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --muted:#6b6357; --rule:#ddd5c6; --bg:#fdfaf3;
+    --code-bg:#f1ece0; --accent:#7a3b2e; --good:#2f6f4f; --bad:#9a3024;
+    --good-bg:#e9f2ea; --bad-bg:#f7e9e6; --card:#fbf6ec;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    line-height:1.62; margin:0; padding:3.2rem 1.25rem 6rem;
+    -webkit-font-smoothing:antialiased; font-size:1.06rem;
+  }
+  .wrap{max-width:44rem; margin:0 auto}
+  .kicker{font-size:.78rem; text-transform:uppercase; letter-spacing:.16em;
+          color:var(--accent); margin:0 0 .5rem}
+  h1{font-size:2.1rem; font-weight:600; line-height:1.12; margin:0 0 .5rem; letter-spacing:-.015em}
+  .dek{color:var(--muted); font-style:italic; font-size:1.15rem; margin:0 0 2.2rem}
+  h2{font-size:1.32rem; font-weight:600; margin:2.6rem 0 .7rem; letter-spacing:-.01em}
+  p{margin:0 0 1rem}
+  code{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+       background:var(--code-bg); padding:.08em .35em; border-radius:3px; font-size:.86em}
+  a{color:var(--accent)}
+  .lead::first-letter{font-size:3.1rem; line-height:.8; float:left; padding:.06em .08em 0 0; font-weight:600; color:var(--accent)}
+  .idea{background:var(--card); border-left:3px solid var(--accent);
+        padding:1rem 1.2rem; border-radius:0 6px 6px 0; margin:1.4rem 0}
+  .idea b{color:var(--accent)}
+  pre{background:#262019; color:#f3ead9; padding:1rem 1.1rem; border-radius:8px;
+      overflow:auto; font-size:.9rem; line-height:1.5; margin:1.2rem 0}
+  pre code{background:none; padding:0; color:inherit; font-size:1em}
+  .cmt{color:#b6a489}
+  .state{display:grid; grid-template-columns:1fr; gap:.5rem; margin:1.2rem 0}
+  .frame{border:1px solid var(--rule); border-radius:8px; background:var(--card); padding:.8rem 1rem}
+  .frame .lbl{font-size:.72rem; text-transform:uppercase; letter-spacing:.12em; color:var(--muted); margin-bottom:.3rem}
+  .frame code{background:none; padding:0; font-size:.95rem}
+  .turn{color:var(--accent); font-weight:700}
+  .arrow{text-align:center; color:var(--muted); font-size:1.1rem; margin:.1rem 0}
+  /* quiz */
+  .quiz{border:1px solid var(--rule); border-radius:10px; padding:1.1rem 1.2rem; margin:1.3rem 0; background:var(--card)}
+  .quiz .q{font-weight:600; margin:0 0 .8rem}
+  .quiz .q code{font-weight:400}
+  .opt{display:block; width:100%; text-align:left; font:inherit; cursor:pointer;
+       background:var(--bg); border:1px solid var(--rule); border-radius:7px;
+       padding:.55rem .8rem; margin:.4rem 0; transition:background .12s,border-color .12s}
+  .opt:hover{border-color:var(--accent)}
+  .opt:disabled{cursor:default}
+  .opt.right{background:var(--good-bg); border-color:var(--good); color:var(--good)}
+  .opt.wrong{background:var(--bad-bg); border-color:var(--bad); color:var(--bad)}
+  .fb{font-size:.95rem; margin:.6rem 0 0; padding-left:.2rem; display:none}
+  .fb.show{display:block}
+  .fb.ok{color:var(--good)} .fb.no{color:var(--bad)}
+  ol.steps{padding-left:1.3rem} ol.steps li{margin:.45rem 0}
+  .src{display:flex; gap:.9rem; align-items:flex-start; background:#efe7d6;
+       border-radius:10px; padding:1rem 1.2rem; margin:1.6rem 0}
+  .src .star{font-size:1.5rem; line-height:1}
+  .src a{font-weight:600}
+  .ask{border:1px dashed var(--accent); border-radius:10px; padding:1rem 1.2rem;
+       margin:1.8rem 0; background:var(--card)}
+  .ask b{color:var(--accent)}
+  footer{margin-top:3rem; padding-top:1rem; border-top:1px solid var(--rule);
+         color:var(--muted); font-size:.92rem; display:flex; flex-wrap:wrap; gap:1.2rem; justify-content:space-between}
+  footer a{color:var(--accent)}
+  sup.c{font-size:.7em; color:var(--accent)}
+  @media print{ body{background:#fff} .opt{display:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="kicker">Lesson 1 · The tactic state</p>
+  <h1>Your first Lean proof</h1>
+  <p class="dek">You can already prove things about ℕ on paper. This lesson is about a new
+  medium for the same act — and the one mental shift that unlocks all of Lean.</p>
+
+  <p class="lead">In Tao's Chapter 2 you proved facts about the natural numbers from the
+  Peano axioms — that <code>0 + n = n</code>, that addition is commutative, all of it. You
+  know <em>why</em> those proofs work. The only thing you don't yet know is how to say them
+  to a machine so it checks every step. That is the entire skill we are building, and it
+  starts with one idea.</p>
+
+  <div class="idea">
+    <b>The one idea.</b> A Lean proof is not a paragraph you write and submit. It is a
+    <b>goal</b> you <em>transform</em>, one <b>tactic</b> at a time, until nothing is left to
+    prove. Lean always shows you the current <b>tactic state</b>; your job is to read it and
+    pick a tactic that moves it forward.<sup class="c">1</sup>
+  </div>
+
+  <p>That is the shift. On paper, the proof is the artifact. In Lean, the proof is a
+  <em>dialogue</em>: you act, Lean shows you the new state, you act again. When the state
+  reads <b>“No goals”</b>, you're done.</p>
+
+  <h2>Two tactics are enough to start</h2>
+
+  <p>You only need two verbs to make your first real proofs about ℕ — the same two that
+  carry you through the opening of the game below.</p>
+
+  <p><code>rfl</code> &mdash; <i>“these are the same by definition.”</i> It closes a goal
+  <code>a = b</code> when the two sides become identical once Lean unfolds definitions and
+  computes. For instance <code>2 + 2 = 4</code> closes by <code>rfl</code>, because addition
+  on ℕ is <em>defined</em> recursively and Lean just runs it.<sup class="c">2</sup></p>
+
+  <p><code>rw [h]</code> &mdash; <i>“rewrite using this equation.”</i> Given a hypothesis or
+  lemma <code>h : x = y</code>, it replaces every <code>x</code> in the goal with
+  <code>y</code>, left to right. This is exactly what you do on paper when you say “by the
+  definition of addition, <code>succ(n) + m = succ(n + m)</code>, so the goal becomes…”.</p>
+
+  <p>Watch the state evolve. Suppose addition satisfies <code>add_succ : succ n + m =
+  succ (n + m)</code> and we want to rewrite the left side of a goal:</p>
+
+  <div class="state">
+    <div class="frame"><div class="lbl">Tactic state — before</div>
+      <code>n m : ℕ &nbsp;<span class="turn">⊢</span>&nbsp; succ n + m = succ (n + m)</code></div>
+    <div class="arrow">▼ &nbsp;<code>rw [add_succ]</code></div>
+    <div class="frame"><div class="lbl">Tactic state — after</div>
+      <code>n m : ℕ &nbsp;<span class="turn">⊢</span>&nbsp; succ (n + m) = succ (n + m)</code></div>
+    <div class="arrow">▼ &nbsp;<code>rfl</code></div>
+    <div class="frame" style="border-color:var(--good)"><div class="lbl" style="color:var(--good)">Tactic state — after</div>
+      <code style="color:var(--good)">No goals</code></div>
+  </div>
+
+  <p>That is a complete Lean proof: <code>rw [add_succ]</code> then <code>rfl</code>. Notice
+  you never “wrote a paragraph” — you steered the state to <code>No goals</code>.</p>
+
+  <h2>Check yourself</h2>
+  <p>Recall, don't reread. Pick an answer and you'll get immediate feedback.</p>
+
+  <div class="quiz" id="quiz">
+    <div class="q" data-a="0">1. When a Lean proof is complete, the tactic state reads:</div>
+    <button class="opt">No goals left</button>
+    <button class="opt">One goal left</button>
+    <button class="opt">Two goals left</button>
+    <button class="opt">Some goal left</button>
+    <p class="fb"></p>
+  </div>
+
+  <div class="quiz">
+    <div class="q" data-a="0">2. The tactic <code>rfl</code> closes a goal <code>a = b</code> exactly when:</div>
+    <button class="opt">the two sides are definitionally equal</button>
+    <button class="opt">the two sides only look alike here</button>
+    <button class="opt">an induction hypothesis was applied</button>
+    <button class="opt">the goal still names a free variable</button>
+    <p class="fb"></p>
+  </div>
+
+  <div class="quiz">
+    <div class="q" data-a="0">3. Given <code>h : x = y</code>, the tactic <code>rw [h]</code> changes the goal by:</div>
+    <button class="opt">replacing each x with y in it</button>
+    <button class="opt">replacing each y with x in it</button>
+    <button class="opt">swapping the goal for its converse</button>
+    <button class="opt">removing the hypothesis h from it</button>
+    <p class="fb"></p>
+  </div>
+
+  <h2>Now do it for real (≈20 min)</h2>
+  <p>Quizzes build the model; a real checker builds the skill. The
+  <b>Natural Number Game</b> is the perfect place — it builds ℕ from the <em>Peano axioms
+  you already know from Tao Chapter 2</em>, runs in the browser with nothing to install, and
+  checks every tactic instantly.</p>
+
+  <ol class="steps">
+    <li>Open the game (link below) and start <b>Tutorial World</b> — 8 short levels.</li>
+    <li>You'll meet <code>rfl</code> first, then <code>rw</code>. After <em>every</em>
+        tactic, look at the goal panel and say to yourself what changed.</li>
+    <li>Tutorial World ends by proving <code>2 + 2 = 4</code>. When the panel says
+        <b>“Level completed! 🎉”</b>, you've closed your first real goals.</li>
+    <li>If you have momentum, start <b>Addition World</b> — it introduces <code>induction</code>,
+        which is the bridge to everything else, and is Lesson 2.</li>
+  </ol>
+
+  <div class="src">
+    <div class="star">★</div>
+    <div><b>Primary source for this lesson — </b>
+      <a href="https://adam.math.hhu.de/#/g/leanprover-community/NNG4">The Natural Number Game</a>.
+      The single best first hour in Lean. Don't just read it — play Tutorial World to the end.</div>
+  </div>
+
+  <div class="ask">
+    <b>I'm your teacher — use me.</b> When you finish Tutorial World, come back and tell me:
+    <em>which tactic surprised you, and where (if anywhere) you got stuck?</em> That answer is
+    exactly where Lesson 2 begins. And ask me anything that was unclear — that's what I'm here
+    for: a confusing goal state, why <code>rfl</code> worked somewhere unexpected, anything.
+  </div>
+
+  <hr style="border:none;border-top:1px solid var(--rule);margin:2.5rem 0 1rem">
+  <p style="font-size:.86rem;color:var(--muted)">
+    <b>Notes.</b>
+    <sup class="c">1</sup> The goal / tactic-state model is laid out in
+    <a href="https://lean-lang.org/theorem_proving_in_lean4/Tactics/">Theorem Proving in Lean 4 §Tactics</a>.
+    &nbsp; <sup class="c">2</sup> Definitional equality and <code>rfl</code>:
+    <a href="https://lean-lang.org/theorem_proving_in_lean4/">TPiL4</a>; the recursive definition
+    of addition on ℕ is Tao <em>Analysis I</em> Def. 2.2.1, formalized in the companion's
+    <a href="https://teorth.github.io/analysis/Analysis/Section_2_2/">Section 2.2</a>.
+  </p>
+
+  <footer>
+    <span>Terms: <code>../GLOSSARY.md</code> &nbsp;·&nbsp;
+      Tactics: <a href="../reference/lean-tactics.html">cheat sheet</a></span>
+    <span>Next ▸ <em>Lesson 2 — induction in Lean</em> (after you've played NNG)</span>
+  </footer>
+</div>
+
+<script>
+  document.querySelectorAll('.quiz').forEach(function(box){
+    var correct = +box.querySelector('.q').dataset.a;
+    var opts = box.querySelectorAll('.opt');
+    var fb = box.querySelector('.fb');
+    var msgs = box.dataset; // unused; per-quiz messages below
+    var explain = [
+      "Right — Lean reports “No goals”. That message is the win you steer toward every time.",
+      "rfl works up to definitional equality: the sides must coincide after Lean computes, not merely resemble each other.",
+      "rw [h] rewrites left → right: occurrences of the left-hand side x become y. (Use rw [← h] to go the other way.)"
+    ];
+    var idx = [].indexOf.call(document.querySelectorAll('.quiz'), box);
+    opts.forEach(function(opt,i){
+      opt.addEventListener('click', function(){
+        opts.forEach(function(o,j){
+          o.disabled = true;
+          if(j===correct) o.classList.add('right');
+        });
+        if(i!==correct) opt.classList.add('wrong');
+        fb.classList.add('show', i===correct ? 'ok':'no');
+        fb.textContent = (i===correct ? "✓ " : "✗ ") + explain[idx];
+      });
+    });
+  });
+</script>
+</body>
+</html>

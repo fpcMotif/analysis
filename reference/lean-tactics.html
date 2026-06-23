@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lean Tactics — Quick Reference</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --muted:#6b6357; --rule:#d8d0c2; --bg:#fdfaf3;
+    --code-bg:#f1ece0; --accent:#7a3b2e; --soon:#a79c89;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    line-height:1.5; margin:0; padding:3rem 1.25rem 5rem;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:50rem; margin:0 auto}
+  h1{font-size:1.9rem; font-weight:600; margin:0 0 .2rem; letter-spacing:-.01em}
+  .sub{color:var(--muted); font-style:italic; margin:0 0 2rem; font-size:1.02rem}
+  h2{font-size:.82rem; text-transform:uppercase; letter-spacing:.13em;
+     color:var(--accent); border-bottom:1px solid var(--rule);
+     padding-bottom:.35rem; margin:2.4rem 0 .9rem}
+  table{width:100%; border-collapse:collapse; margin:0}
+  td{vertical-align:baseline; padding:.42rem .5rem .42rem 0; border-bottom:1px solid var(--rule)}
+  td.t{width:9.5rem; white-space:nowrap}
+  code{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+       background:var(--code-bg); padding:.08em .35em; border-radius:3px; font-size:.86em}
+  td.t code{background:none; padding:0; color:var(--accent); font-weight:600; font-size:.92em}
+  .desc{color:var(--ink)}
+  .note{color:var(--muted); font-size:.92em}
+  .soon td.t code{color:var(--soon)}
+  .tag{display:inline-block; font-family:ui-monospace,monospace; font-size:.66rem;
+       letter-spacing:.04em; padding:.08em .4em; border-radius:999px;
+       border:1px solid var(--rule); color:var(--muted); vertical-align:middle; margin-left:.4rem}
+  .tag.now{color:var(--accent); border-color:var(--accent)}
+  footer{margin-top:3rem; padding-top:1rem; border-top:1px solid var(--rule);
+         color:var(--muted); font-size:.9rem}
+  a{color:var(--accent)}
+  @media print{ body{background:#fff} :root{--bg:#fff;--code-bg:#eee} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Lean Tactics — Quick Reference</h1>
+  <p class="sub">A living cheat sheet for formalizing Tao's <em>Analysis</em>. Tactics marked
+  <span class="tag now">L1</span>/<span class="tag now">L2</span> you have met (by lesson); the rest are previews you'll meet soon.</p>
+
+  <h2>Closing a goal</h2>
+  <table>
+    <tr><td class="t"><code>rfl</code> <span class="tag now">L1</span></td>
+        <td><span class="desc">Closes <code>a = b</code> when the two sides are
+        <em>definitionally equal</em> — equal after Lean computes/unfolds definitions
+        (e.g. <code>2 + 2 = 4</code>).</span></td></tr>
+    <tr><td class="t"><code>exact h</code> <span class="tag">soon</span></td>
+        <td><span class="desc">Closes the goal when <code>h</code> is <em>exactly</em> a proof
+        of it. The Lean version of "this is precisely our hypothesis."</span></td></tr>
+    <tr><td class="t"><code>assumption</code> <span class="tag">soon</span></td>
+        <td><span class="desc">Closes the goal if <em>some</em> hypothesis already in context
+        matches it, without you naming which.</span></td></tr>
+    <tr><td class="t"><code>decide</code> <span class="tag">soon</span></td>
+        <td><span class="desc">Closes a decidable goal by computation (small finite checks,
+        concrete numeric (in)equalities).</span></td></tr>
+  </table>
+
+  <h2>Rewriting &amp; computing</h2>
+  <table>
+    <tr><td class="t"><code>rw [h]</code> <span class="tag now">L1</span></td>
+        <td><span class="desc">Given <code>h : x = y</code>, replaces <em>every</em>
+        <code>x</code> in the goal with <code>y</code> (left&nbsp;→&nbsp;right). Use
+        <code>rw [← h]</code> to rewrite right&nbsp;→&nbsp;left.</span>
+        <span class="note">The workhorse: most early proofs are chains of rewrites.</span></td></tr>
+    <tr><td class="t"><code>simp</code> <span class="tag">soon</span></td>
+        <td><span class="desc">Simplifies the goal using a large library of marked lemmas.
+        Powerful, but can feel like a black box — use deliberately.</span></td></tr>
+    <tr><td class="t"><code>ring</code> <span class="tag">soon</span></td>
+        <td><span class="desc">Proves equalities that hold in any commutative ring — the
+        algebraic identities you'd "just expand" on paper.</span></td></tr>
+    <tr><td class="t"><code>norm_num</code> <span class="tag">soon</span></td>
+        <td><span class="desc">Settles concrete numeric goals and (in)equalities over
+        ℕ, ℤ, ℚ, ℝ.</span></td></tr>
+    <tr><td class="t"><code>linarith</code> <span class="tag">soon</span></td>
+        <td><span class="desc">Closes goals that follow by <em>linear arithmetic</em> from the
+        hypotheses — the bread and butter of ε–δ estimates.</span></td></tr>
+    <tr><td class="t"><code>omega</code> <span class="tag">soon</span></td>
+        <td><span class="desc">Decision procedure for linear arithmetic over ℤ and ℕ.</span></td></tr>
+  </table>
+
+  <h2>Structuring a proof</h2>
+  <table>
+    <tr><td class="t"><code>intro h</code> <span class="tag now">L2</span></td>
+        <td><span class="desc">Moves the antecedent of an implication (or a ∀-bound variable)
+        into the context — "assume <code>h</code>; let <code>x</code> be arbitrary." In the
+        induction step, <code>intro n ih</code> names the predecessor and the hypothesis.</span></td></tr>
+    <tr><td class="t"><code>apply f</code> <span class="tag now">L2</span></td>
+        <td><span class="desc">Reduces the goal to the hypotheses of <code>f</code> —
+        backward reasoning, "it suffices to show…". The companion inducts via
+        <code>apply induction</code>.</span></td></tr>
+    <tr><td class="t"><code>induction n</code> <span class="tag now">L2</span></td>
+        <td><span class="desc">Splits a goal about <code>n : ℕ</code> into a base case and a
+        successor case (with the induction hypothesis in context) — Tao's Axiom 2.5 made
+        mechanical.</span>
+        <span class="note">Two syntaxes: companion <code>revert n; apply induction</code> then
+        <code>. &lt;base&gt;</code> and <code>intro n ih</code>; mainstream
+        <code>induction n with | zero =&gt; … | succ k ih =&gt; …</code>.</span></td></tr>
+    <tr><td class="t"><code>revert n</code> <span class="tag now">L2</span></td>
+        <td><span class="desc">Moves a local variable back into the goal as a ∀ — exposes the
+        quantifier for <code>apply induction</code>, and <em>generalizes</em> so the induction
+        hypothesis stays strong enough. Inverse of <code>intro</code>.</span></td></tr>
+    <tr><td class="t"><code>obtain</code> <span class="tag">soon</span></td>
+        <td><span class="desc">Destructs an existential or conjunction:
+        <code>obtain ⟨x, hx⟩ := h</code> names the witness and its property.</span></td></tr>
+    <tr><td class="t"><code>constructor</code> <span class="tag">soon</span></td>
+        <td><span class="desc">Splits a goal built from "and" / "iff" into its parts to prove
+        separately.</span></td></tr>
+    <tr><td class="t"><code>calc</code> <span class="tag">soon</span></td>
+        <td><span class="desc">Writes a chain of (in)equalities with a justification on each
+        step — the closest Lean gets to a textbook computation.</span></td></tr>
+  </table>
+
+  <h2>The escape hatch</h2>
+  <table>
+    <tr><td class="t"><code>sorry</code> <span class="tag now">L1</span></td>
+        <td><span class="desc">"Assume this goal holds." Lets a file compile with gaps. Every
+        exercise in the companion is a <code>sorry</code> you will replace.</span></td></tr>
+  </table>
+
+  <footer>
+    Definitions follow
+    <a href="https://lean-lang.org/theorem_proving_in_lean4/">Theorem Proving in Lean 4</a>
+    and the <a href="https://leanprover-community.github.io/mathlib4_docs/">Mathlib docs</a>.
+    Terms used here are defined in <code>GLOSSARY.md</code>. &nbsp;·&nbsp; This sheet grows as
+    lessons introduce new tactics.
+  </footer>
+</div>
+</body>
+</html>

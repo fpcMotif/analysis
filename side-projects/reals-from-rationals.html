@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Constructing ℝ from ℚ — Cauchy &amp; Dedekind, math beside Lean</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" crossorigin="anonymous">
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" crossorigin="anonymous"></script>
+<script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" crossorigin="anonymous"></script>
+<style>
+  :root{
+    --ink:#1c1a17; --muted:#6b6357; --rule:#ddd5c6; --bg:#fdfaf3;
+    --code-bg:#262019; --code-ink:#f3ead9; --code-cmt:#b6a489; --code-kw:#e0a96d;
+    --accent:#7a3b2e; --accent2:#2f5e6f; --card:#fbf6ec; --good:#2f6f4f;
+    --A:#e6d3b3; --B:#cfd9dc; --gamma:#d8c39a;
+  }
+  *{box-sizing:border-box}
+  body{background:var(--bg); color:var(--ink);
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    line-height:1.62; margin:0; padding:3.5rem 1.25rem 6rem; font-size:1.06rem;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:53rem; margin:0 auto}
+  .kicker{font-size:.78rem; text-transform:uppercase; letter-spacing:.18em; color:var(--accent); margin:0 0 .6rem}
+  h1{font-size:2.5rem; font-weight:600; line-height:1.08; margin:0 0 .5rem; letter-spacing:-.02em}
+  .dek{color:var(--muted); font-style:italic; font-size:1.2rem; margin:0 0 2.4rem; max-width:42rem}
+  h2{font-size:1.7rem; font-weight:600; margin:3.2rem 0 .4rem; letter-spacing:-.015em; padding-top:1.6rem; border-top:2px solid var(--rule)}
+  h3{font-size:1.12rem; font-weight:600; color:var(--accent2); margin:2rem 0 .5rem}
+  p{margin:0 0 1rem}
+  a{color:var(--accent)}
+  .lead::first-letter{font-size:3.2rem; line-height:.8; float:left; padding:.05em .08em 0 0; font-weight:600; color:var(--accent)}
+  .best{background:var(--card); border-left:4px solid var(--accent); border-radius:0 8px 8px 0; padding:1.2rem 1.4rem; margin:1.8rem 0}
+  .best h3{margin-top:0; color:var(--accent)}
+  .best .bottom{font-weight:600; color:var(--accent)}
+  /* pair */
+  .pair{margin:1.6rem 0 2rem; border:1px solid var(--rule); border-radius:12px; overflow:hidden; background:#fff}
+  .pair figcaption{font-size:.96rem; color:var(--ink); background:var(--card); padding:.7rem 1rem; border-bottom:1px solid var(--rule)}
+  .cols{display:grid; grid-template-columns:1fr 1fr; gap:0}
+  .math-side{padding:1.1rem 1.2rem; display:flex; align-items:center; justify-content:center; border-right:1px solid var(--rule); overflow-x:auto}
+  .lean-side{padding:0; background:var(--code-bg)}
+  .lean-label{font-family:ui-monospace,Menlo,Consolas,monospace; font-size:.66rem; letter-spacing:.08em; text-transform:uppercase; color:var(--code-cmt); padding:.5rem .9rem .2rem}
+  .lean-side pre{margin:0; padding:.2rem .9rem 1rem; overflow-x:auto}
+  .lean-side code{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace; font-size:.78rem; line-height:1.5; color:var(--code-ink); white-space:pre}
+  .cmt{color:var(--code-cmt); font-style:italic}
+  .kw{color:var(--code-kw)}
+  .mlnote{font-size:.9rem; color:var(--muted); padding:.7rem 1rem; margin:0; border-top:1px dashed var(--rule); background:#fcfaf4}
+  .ml-tag{display:inline-block; font-family:ui-monospace,monospace; font-size:.62rem; letter-spacing:.05em; padding:.1em .45em; border-radius:999px; border:1px solid var(--accent2); color:var(--accent2); margin-right:.5em; vertical-align:.06em}
+  .ml-tag.ill{border-color:var(--accent); color:var(--accent)}
+  @media(max-width:680px){.cols{grid-template-columns:1fr}.math-side{border-right:none;border-bottom:1px solid var(--rule)}}
+  /* katex fallback */
+  .kx-fallback{font-family:ui-monospace,monospace; font-size:.8rem; color:var(--accent); white-space:pre-wrap}
+  .katex-display{margin:0!important}
+  /* figure / svg */
+  figure.viz{margin:2rem 0; border:1px solid var(--rule); border-radius:12px; background:#fff; padding:1rem 1.1rem .6rem}
+  figure.viz h4{margin:.1rem 0 .2rem; font-size:1rem; color:var(--accent)}
+  figure.viz p.cap{font-size:.9rem; color:var(--muted); margin:.3rem 0 .8rem}
+  figure.viz svg{width:100%; height:auto; display:block}
+  /* table */
+  table.cmp{width:100%; border-collapse:collapse; margin:1.4rem 0; font-size:.93rem}
+  table.cmp th,table.cmp td{border:1px solid var(--rule); padding:.55rem .7rem; vertical-align:top; text-align:left}
+  table.cmp thead th{background:var(--card); font-size:.92rem}
+  table.cmp th[scope=row]{color:var(--accent2); font-weight:600; width:11rem}
+  table.cmp td:nth-child(2){background:#fcf7ee}
+  /* sqrt2 */
+  .sqrt2{background:var(--card); border-radius:12px; padding:1.2rem 1.4rem; margin:1.6rem 0}
+  .reading li{margin:.4rem 0}
+  footer{margin-top:3.5rem; padding-top:1.2rem; border-top:1px solid var(--rule); color:var(--muted); font-size:.92rem}
+  footer a{color:var(--accent)}
+  .tag-svg-open{fill:#fff; stroke-width:2.5}
+  @media print{body{background:#fff}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="kicker">Side-project · Tao Analysis I, Chapter 5</p>
+  <h1>Constructing ℝ from ℚ</h1>
+  <p class="dek">Two roads from the rationals to the reals — Cauchy sequences (Tao &amp; Mathlib)
+  and Dedekind cuts (Rudin) — with the mathematics beside the Lean, the way this repo formalizes it.</p>
+
+  <p class="lead">The rationals ℚ form an ordered field, yet they are riddled with holes. The
+  classic witness is √2: no rational squares to 2, so <span class="im">x^2 = 2</span> has no
+  solution in ℚ even though rationals approach the missing point arbitrarily closely. More
+  structurally, ℚ fails to be <em>complete</em> in two equivalent senses — there are Cauchy
+  sequences of rationals converging to nothing in ℚ (a metric gap), and nonempty bounded-above
+  sets of rationals with no least upper bound (an order gap). The reals ℝ are the completion that
+  plugs every such hole at once.</p>
+
+  <p>There are two canonical ways to build ℝ from ℚ, each filling one kind of gap directly.
+  <b>Cauchy sequences</b> complete the metric: a real is the formal limit of a rational Cauchy
+  sequence, with two sequences identified when their difference tends to zero. This is Tao's route
+  (Analysis I, Ch. 5), what the <code>teorth/analysis</code> companion formalizes, and exactly how
+  Mathlib defines ℝ. <b>Dedekind cuts</b> fill the order gaps: a real <em>is</em> the downward-closed
+  set of all rationals to its left, and completeness falls out almost for free because the supremum
+  of a family of cuts is just their union.</p>
+
+  <div class="best">
+    <h3>What is the best approach?</h3>
+    <p>Use <b>Cauchy sequences</b> as the default — and that is what this repo and Mathlib actually
+    do. The decisive advantage is that arithmetic lifts <em>mechanically</em> from ℚ: <span class="im">+,
+    \times, -, {}^{-1}</span> are defined termwise on representative sequences and pushed through the
+    quotient, so the ring/field axioms reduce to routine ε-arguments on rationals. Mathlib's ℝ is a
+    one-field wrapper around <code>CauSeq.Completion.Cauchy abs</code> — the quotient of rational
+    Cauchy sequences by "difference → 0" — and the companion mirrors it with
+    <code>abbrev Real := Quotient CauchySequence.instSetoid</code>. The same machinery also reuses
+    verbatim for other completions (e.g. the p-adics), and it is the form in which limits and
+    continuity are most natural.</p>
+    <p>Reach for <b>Dedekind cuts</b> when you want order intuition and the least-upper-bound property
+    almost for free: the sup of a bounded-above family of cuts is their union, and completeness is a
+    three-line check. The price is paid on the algebra side — the additive inverse needs a slack term,
+    and multiplication needs a four-case sign split — which is exactly why Mathlib does <em>not</em>
+    use cuts. (Classically the two constructions are isomorphic; constructively they differ. Mathlib
+    is classical, so its choice of Cauchy is convenience, not necessity.)</p>
+    <p class="bottom">Bottom line for this repo: Cauchy is the primary, formalized construction;
+    Dedekind cuts are the illuminating alternative for order and completeness.</p>
+  </div>
+
+  <!-- ===================== SECTION 1 ===================== -->
+  <h2>1 · Cauchy sequences</h2>
+  <p>Tao builds ℝ in three stages. First (5.1) he isolates rational Cauchy sequences via
+  <em>eventual ε-steadiness</em>, where ε ranges over the positive <b>rationals</b> only — ℝ does not
+  yet exist, so real ε would be circular. Next (5.2) he says when two Cauchy sequences are equivalent
+  (eventually ε-close for every rational ε &gt; 0). Finally (5.3) ℝ is the set of formal limits
+  <span class="im">\mathrm{LIM}\,a_n</span> — equivalence classes — with +, ×, negation and reciprocals
+  checked to be well-defined on classes.</p>
+  <p>The companion follows this exactly, with one Lean twist: a "sequence of rationals" is not a bare
+  <span class="im">\mathbb{N}\to\mathbb{Q}</span> but a <code>Sequence</code> structure with an integer
+  start index. Note too that this is a <em>teaching snapshot</em> — several supporting results are still
+  <code>sorry</code> (the setoid laws, multiplication's closure, the field axioms); addition's
+  well-definedness is fully proven. The construction's <em>shape</em> is complete and faithful.</p>
+
+  <figure class="pair">
+    <figcaption>A “sequence of rationals” is a structure — integer start index <span class="im">n_0</span>,
+    a total function <span class="im">\mathbb{Z}\to\mathbb{Q}</span>, and a proof it vanishes left of
+    <span class="im">n_0</span>. A bare <span class="im">\mathbb{N}\to\mathbb{Q}</span> is coerced in, starting at 0.</figcaption>
+    <div class="cols">
+      <div class="math-side"><div class="kx"></div><script type="text/latex">\text{A sequence is }(n_0,\,\mathrm{seq})\text{ with }n_0\in\mathbb{Z},\ \mathrm{seq}:\mathbb{Z}\to\mathbb{Q},\ \text{and }\forall n<n_0,\ \mathrm{seq}(n)=0.</script></div>
+      <div class="lean-side"><div class="lean-label">Lean · companion (Chapter5)</div><pre><code class="lean"></code></pre><script type="text/lean">@[ext]
+structure Sequence where
+  n₀ : ℤ
+  seq : ℤ → ℚ
+  vanish : ∀ n < n₀, seq n = 0
+
+@[coe]
+def Sequence.ofNatFun (f : ℕ → ℚ) : Sequence where
+  n₀ := 0
+  seq n := if n ≥ 0 then f n.toNat else 0
+  vanish := by grind</script></div>
+    </div>
+    <p class="mlnote"><span class="ml-tag">Mathlib</span> Mathlib's <code>CauSeq β abv</code> is instead a subtype of <span class="im">\mathbb{N}\to\beta</span> (function bundled with a proof), with no integer start index — the companion's <code>Sequence</code> with <code>n₀ : ℤ</code> is a Tao-faithful elaboration, not the Mathlib shape.</p>
+  </figure>
+
+  <figure class="pair">
+    <figcaption>ε-steady, eventually ε-steady, and Cauchy. Note the <b>non-strict</b> ≤ inside
+    <code>Close x y := |x − y| ≤ ε</code>, and that ε ranges over positive rationals.</figcaption>
+    <div class="cols">
+      <div class="math-side"><div class="kx"></div><script type="text/latex">\begin{aligned}\mathrm{Steady}_\varepsilon(a)&\iff \forall n,m\ge a.n_0,\ |a_n-a_m|\le\varepsilon,\\[2pt] \mathrm{EvtSteady}_\varepsilon(a)&\iff \exists N\ge a.n_0,\ \mathrm{Steady}_\varepsilon(a_{\ge N}),\\[2pt] \mathrm{IsCauchy}(a)&\iff \forall\varepsilon\in\mathbb{Q}^{+},\ \mathrm{EvtSteady}_\varepsilon(a).\end{aligned}</script></div>
+      <div class="lean-side"><div class="lean-label">Lean · companion (Chapter5)</div><pre><code class="lean"></code></pre><script type="text/lean">abbrev Rat.Steady (ε : ℚ) (a : Sequence) : Prop :=
+  ∀ n ≥ a.n₀, ∀ m ≥ a.n₀, ε.Close (a n) (a m)
+
+abbrev Rat.EventuallySteady (ε : ℚ) (a : Sequence) : Prop :=
+  ∃ N ≥ a.n₀, ε.Steady (a.from N)
+
+abbrev Sequence.IsCauchy (a : Sequence) : Prop :=
+  ∀ ε > (0 : ℚ), ε.EventuallySteady a</script></div>
+    </div>
+    <p class="mlnote"><span class="ml-tag">Mathlib</span> Idiomatic: <code>IsCauSeq abs f</code> / the bundled <code>CauSeq ℚ abs</code>. The proven lemma <code>IsCauchy.coe</code> recovers the familiar ε–N form <span class="im">\forall \varepsilon&gt;0,\ \exists N,\ \forall j,k\ge N,\ |a_j-a_k|\le\varepsilon</span> for 0-indexed sequences.</p>
+  </figure>
+
+  <figure class="pair">
+    <figcaption>Two Cauchy sequences are equivalent iff for every rational ε &gt; 0 their terms are
+    eventually within ε — informally <span class="im">|a_n-b_n|\to 0</span>. This is the relation the quotient uses.</figcaption>
+    <div class="cols">
+      <div class="math-side"><div class="kx"></div><script type="text/latex">a\equiv b\iff \forall\varepsilon\in\mathbb{Q}^{+},\ \exists N,\ \forall n\ge N,\ |a_n-b_n|\le\varepsilon.</script></div>
+      <div class="lean-side"><div class="lean-label">Lean · companion (Chapter5)</div><pre><code class="lean"></code></pre><script type="text/lean">abbrev Sequence.Equiv (a b : ℕ → ℚ) : Prop :=
+  ∀ ε > (0 : ℚ), ε.EventuallyClose (a : Sequence) (b : Sequence)
+
+-- the prose ε–N restatement (still `sorry` in this snapshot):
+lemma Sequence.equiv_iff (a b : ℕ → ℚ) :
+    Equiv a b ↔ ∀ ε > 0, ∃ N, ∀ n ≥ N, |a n - b n| ≤ ε := by
+  sorry</script></div>
+    </div>
+    <p class="mlnote"><span class="ml-tag">Mathlib</span> The setoid <code>CauSeq.equiv</code> (notation <code>≈</code>): <code>f ≈ g</code> means <code>(f − g)</code> is <code>LimZero</code>. The companion's definition is faithful; its <code>equiv_iff</code> restatement is currently <code>sorry</code>.</p>
+  </figure>
+
+  <figure class="pair">
+    <figcaption><b>The construction.</b> ℝ is the quotient of the <code>CauchySequence</code> class by the
+    <code>Equiv</code> setoid — a <code>Quotient</code>, not a structure. (The setoid's refl/symm/trans is currently <code>sorry</code>.)</figcaption>
+    <div class="cols">
+      <div class="math-side"><div class="kx"></div><script type="text/latex">\mathbb{R} := \mathrm{CauchySequence}\,/\!\approx,\qquad a\approx b \iff a\equiv b.</script></div>
+      <div class="lean-side"><div class="lean-label">Lean · companion (Chapter5)</div><pre><code class="lean"></code></pre><script type="text/lean">instance CauchySequence.instSetoid : Setoid CauchySequence where
+  r := fun a b ↦ Sequence.Equiv a b
+  iseqv := {
+    refl  := sorry
+    symm  := sorry
+    trans := sorry
+  }
+
+abbrev Real := Quotient CauchySequence.instSetoid</script></div>
+    </div>
+    <p class="mlnote"><span class="ml-tag">Mathlib</span> Same idea, one layer deeper: <code>structure Real where ofCauchy :: (cauchy : CauSeq.Completion.Cauchy abs)</code>, and <code>CauSeq.Completion.Cauchy abs := Quotient CauSeq.equiv</code>. Both are “quotient of rational Cauchy sequences”; Mathlib's <code>iseqv</code> is, of course, fully proven.</p>
+  </figure>
+
+  <figure class="pair">
+    <figcaption>The formal limit <code>LIM</code> sends a rational sequence to its class, classically mapping
+    non-Cauchy inputs to a dummy 0. Every real is a <code>LIM</code>, and two agree iff the sequences are equivalent.</figcaption>
+    <div class="cols">
+      <div class="math-side"><div class="kx"></div><script type="text/latex">\mathrm{LIM}(a):=\big[\,\text{if }\mathrm{IsCauchy}(a)\text{ then }a\text{ else }0\,\big]_{\approx},\qquad \mathrm{LIM}(a)=\mathrm{LIM}(b)\iff a\equiv b.</script></div>
+      <div class="lean-side"><div class="lean-label">Lean · companion (Chapter5)</div><pre><code class="lean"></code></pre><script type="text/lean">open Classical in
+noncomputable abbrev LIM (a : ℕ → ℚ) : Real :=
+  Quotient.mk _ (if h : (a : Sequence).IsCauchy then
+    CauchySequence.mk' h else (0 : CauchySequence))
+
+theorem Real.LIM_eq_LIM {a b : ℕ → ℚ}
+    (ha : (a : Sequence).IsCauchy) (hb : (b : Sequence).IsCauchy) :
+    LIM a = LIM b ↔ Sequence.Equiv a b := by
+  -- via Quotient.exact / Quotient.sound
+  sorry</script></div>
+    </div>
+    <p class="mlnote"><span class="ml-tag">Mathlib</span> Idiomatic <code>Real.mk : CauSeq ℚ abs → ℝ</code> (and <code>Real.ofCauchy</code>). The classical <code>if … else 0</code> dummy is how a partial map into a quotient is totalized; <code>eq_lim</code>/<code>LIM_eq_LIM</code> wrap <code>Quotient.exact</code>/<code>sound</code>.</p>
+  </figure>
+
+  <figure class="pair">
+    <figcaption>Addition lifts termwise rational addition through the quotient via <code>Quotient.liftOn₂</code>.
+    Its well-definedness <b>is</b> fully proven here (closure via the ε/2 trick, plus substitution).</figcaption>
+    <div class="cols">
+      <div class="math-side"><div class="kx"></div><script type="text/latex">\mathrm{LIM}(a)+\mathrm{LIM}(b):=\mathrm{LIM}(a+b).</script></div>
+      <div class="lean-side"><div class="lean-label">Lean · companion (Chapter5)</div><pre><code class="lean"></code></pre><script type="text/lean">noncomputable instance Real.add_inst : Add Real where
+  add := fun x y ↦
+    Quotient.liftOn₂ x y (fun a b ↦ LIM (a + b)) (by
+      intro a b a' b' _ _
+      change LIM ((a : ℕ → ℚ) + (b : ℕ → ℚ))
+           = LIM ((a' : ℕ → ℚ) + (b' : ℕ → ℚ))
+      rw [LIM_eq_LIM]
+      · solve_by_elim [Sequence.add_equiv]
+      all_goals apply Sequence.IsCauchy.add)</script></div>
+    </div>
+    <p class="mlnote"><span class="ml-tag">Mathlib</span> Mathlib lifts the same way (<code>Quotient.liftOn₂</code> on <code>CauSeq.Completion.Cauchy</code>). Closure needs splitting ε into ε/2 so the triangle inequality recombines to ε, not 2ε — the proven <code>IsCauchy.add</code> + <code>add_equiv</code>.</p>
+  </figure>
+
+  <figure class="pair">
+    <figcaption>Multiplication lifts the termwise product the same way. (Its closure lemma
+    <code>IsCauchy.mul</code> is <code>sorry</code> here; mathematically it needs Cauchy ⇒ bounded.)</figcaption>
+    <div class="cols">
+      <div class="math-side"><div class="kx"></div><script type="text/latex">\mathrm{LIM}(a)\cdot\mathrm{LIM}(b):=\mathrm{LIM}(a\cdot b).</script></div>
+      <div class="lean-side"><div class="lean-label">Lean · companion (Chapter5)</div><pre><code class="lean"></code></pre><script type="text/lean">noncomputable instance Real.mul_inst : Mul Real where
+  mul := fun x y ↦
+    Quotient.liftOn₂ x y (fun a b ↦ LIM (a * b)) (by
+      intro a b a' b' haa' hbb'
+      change LIM ((a : ℕ → ℚ) * (b : ℕ → ℚ))
+           = LIM ((a' : ℕ → ℚ) * (b' : ℕ → ℚ))
+      rw [LIM_eq_LIM]
+      · exact Sequence.mul_equiv haa' hbb'
+      all_goals apply Sequence.IsCauchy.mul)</script></div>
+    </div>
+    <p class="mlnote"><span class="ml-tag">Mathlib</span> Same <code>liftOn₂</code> pattern. Tao's Prop 5.3.10 uses Cauchy ⇒ bounded (Lem 5.1.15) and <span class="im">a_jb_j-a_kb_k=a_j(b_j-b_k)+b_k(a_j-a_k)</span>, controlled via ε/(2M)-steadiness. In the companion <code>IsCauchy.mul</code> is <code>sorry</code>.</p>
+  </figure>
+
+  <figure class="pair">
+    <figcaption>ℚ embeds as the class of the constant sequence: <span class="im">q\mapsto\mathrm{LIM}(\lambda n.\,q)</span>.
+    This is an injective ring homomorphism.</figcaption>
+    <div class="cols">
+      <div class="math-side"><div class="kx"></div><script type="text/latex">(q:\mathbb{R}):=\mathrm{LIM}(\lambda n.\,q),\qquad a=b\iff (a:\mathbb{R})=(b:\mathbb{R})\ \ (a,b\in\mathbb{Q}).</script></div>
+      <div class="lean-side"><div class="lean-label">Lean · companion (Chapter5)</div><pre><code class="lean"></code></pre><script type="text/lean">instance Real.instRatCast : RatCast Real where
+  ratCast := fun q ↦ Quotient.mk _
+    (CauchySequence.mk' (a := fun _ ↦ q)
+      (Sequence.IsCauchy.const q))
+
+theorem Real.ratCast_def (q : ℚ) :
+    (q : Real) = LIM (fun _ ↦ q) := by
+  rw [LIM_def]; rfl</script></div>
+    </div>
+    <p class="mlnote"><span class="ml-tag">Mathlib</span> Mathlib provides the analogous <code>RatCast ℝ</code> via the constant Cauchy sequence. The companion's <code>IsCauchy.const</code> is <code>sorry</code> in this snapshot, so the embedding's Cauchy-ness is asserted but not yet verified there.</p>
+  </figure>
+
+  <!-- ===================== SECTION 2 ===================== -->
+  <h2>2 · Dedekind cuts</h2>
+  <p>Where Cauchy sequences complete the metric, cuts fill the order gaps directly: a real number
+  <em>is</em> the set of all rationals to its left. We follow Rudin's one-set formulation (Principles
+  of Mathematical Analysis, Ch. 1 Appendix). A cut <span class="im">\alpha\subseteq\mathbb{Q}</span> is
+  nonempty and proper, downward-closed, and has no greatest element; ℝ is the set of all cuts, ordered
+  by inclusion. The payoff is completeness for almost nothing. The bill comes due on algebra — the
+  additive inverse needs a slack term and multiplication needs a sign-case split — which is exactly the
+  asymmetry that makes Mathlib prefer Cauchy.</p>
+  <p style="background:#f7e9e6;border-radius:8px;padding:.6rem .9rem;font-size:.94rem">
+  <b>Note:</b> the Lean below is <b>illustrative</b> and is <em>not</em> part of Mathlib or the companion.
+  Mathlib builds ℝ from Cauchy sequences; its only <code>Dedekind*</code> names
+  (<code>IsDedekindDomain</code>, …) are commutative-algebra notions, unrelated to order-theoretic cuts.
+  The structure below is hand-written, type-checked by static analysis, to show how a cut-based ℝ would
+  look in idiomatic Lean 4.</p>
+
+  <figure class="pair">
+    <figcaption>A (lower) Dedekind cut: a nonempty, proper, downward-closed subset of ℚ with no greatest
+    element. Geometrically: all rationals strictly left of a point.</figcaption>
+    <div class="cols">
+      <div class="math-side"><div class="kx"></div><script type="text/latex">\begin{aligned}&\alpha\subseteq\mathbb{Q}\text{ is a cut}\iff\\ &(\mathrm{I})\ \alpha\neq\varnothing,\ \alpha\neq\mathbb{Q};\\ &(\mathrm{II})\ p\in\alpha,\ q<p\Rightarrow q\in\alpha;\\ &(\mathrm{III})\ p\in\alpha\Rightarrow\exists r\in\alpha,\ p<r.\end{aligned}</script></div>
+      <div class="lean-side"><div class="lean-label">Lean · illustrative (not Mathlib)</div><pre><code class="lean"></code></pre><script type="text/lean">-- ILLUSTRATIVE — not Mathlib; Mathlib builds ℝ from Cauchy seqs.
+structure DedekindCut where
+  carrier  : Set ℚ
+  nonempty : ∃ q : ℚ, q ∈ carrier
+  not_univ : ∃ q : ℚ, q ∉ carrier
+  downward : ∀ p q : ℚ, q ∈ carrier → p < q → p ∈ carrier
+  no_max   : ∀ q : ℚ, q ∈ carrier → ∃ r : ℚ, r ∈ carrier ∧ q < r</script></div>
+    </div>
+    <p class="mlnote"><span class="ml-tag ill">Illustrative</span> <code>Set ℚ</code> is defeq to <span class="im">\mathbb{Q}\to\mathrm{Prop}</span>; the four fields are Rudin's axioms (I)–(III). Using a single lower set (not a pair <span class="im">(A,B)</span>); axiom (III) is what makes the embedding <span class="im">q\mapsto\{p&lt;q\}</span> unambiguous.</p>
+  </figure>
+
+  <figure class="viz" id="viz-partition">
+    <h4>A cut as a partition of the number line</h4>
+    <p class="cap">A cut splits ℚ into a left part <b>A = α</b> and a right part <b>B = ℚ∖α</b>; the cut
+    point itself is excluded from A (no greatest element). Order is inclusion: <span class="im">\alpha\le\beta\iff\alpha\subseteq\beta</span>.</p>
+    <svg viewBox="0 0 720 150" role="img" aria-label="A Dedekind cut as a partition of the number line">
+      <defs>
+        <marker id="arrL" markerWidth="9" markerHeight="9" refX="7" refY="4.5" orient="auto"><path d="M9,1 L2,4.5 L9,8" fill="none" stroke="#7a3b2e" stroke-width="1.6"/></marker>
+      </defs>
+      <rect x="60" y="64" width="426" height="22" fill="#e6d3b3"/>
+      <rect x="486" y="64" width="174" height="22" fill="#cfd9dc"/>
+      <line x1="50" y1="86" x2="670" y2="86" stroke="#1c1a17" stroke-width="1.5"/>
+      <!-- ticks -->
+      <g font-size="12" fill="#6b6357" text-anchor="middle" font-family="Georgia,serif">
+        <line x1="110" y1="82" x2="110" y2="90" stroke="#1c1a17"/><text x="110" y="106">−1</text>
+        <line x1="235" y1="82" x2="235" y2="90" stroke="#1c1a17"/><text x="235" y="106">0</text>
+        <line x1="360" y1="82" x2="360" y2="90" stroke="#1c1a17"/><text x="360" y="106">1</text>
+        <line x1="610" y1="82" x2="610" y2="90" stroke="#1c1a17"/><text x="610" y="106">2</text>
+      </g>
+      <!-- cut -->
+      <line x1="486" y1="36" x2="486" y2="100" stroke="#7a3b2e" stroke-width="1.6" stroke-dasharray="5 4"/>
+      <circle cx="486" cy="86" r="6" fill="#fff" stroke="#7a3b2e" stroke-width="2.5"/>
+      <text x="486" y="28" text-anchor="middle" font-size="12.5" fill="#7a3b2e" font-style="italic" font-family="Georgia,serif">the cut</text>
+      <text x="270" y="55" text-anchor="middle" font-size="14" fill="#7a3b2e" font-family="Georgia,serif">A = α &nbsp;(downward-closed, nonempty, proper)</text>
+      <text x="575" y="55" text-anchor="middle" font-size="14" fill="#2f5e6f" font-family="Georgia,serif">B = ℚ∖α</text>
+      <line x1="470" y1="120" x2="430" y2="120" stroke="#7a3b2e" stroke-width="1.6" marker-end="url(#arrL)"/>
+      <text x="476" y="124" font-size="12" fill="#7a3b2e" font-style="italic" font-family="Georgia,serif">no greatest element</text>
+    </svg>
+  </figure>
+
+  <figure class="pair">
+    <figcaption>Order is just subset inclusion — automatically total. If <span class="im">\alpha\not\subseteq\beta</span>,
+    downward-closure of β forces <span class="im">\beta\subseteq\alpha</span>, giving trichotomy for free.</figcaption>
+    <div class="cols">
+      <div class="math-side"><div class="kx"></div><script type="text/latex">\alpha\le\beta\iff\alpha\subseteq\beta,\qquad \alpha<\beta\iff\alpha\subsetneq\beta.</script></div>
+      <div class="lean-side"><div class="lean-label">Lean · illustrative (not Mathlib)</div><pre><code class="lean"></code></pre><script type="text/lean">-- ILLUSTRATIVE — not Mathlib.
+instance : LE DedekindCut where
+  le x y := x.carrier ⊆ y.carrier
+
+theorem le_def (x y : DedekindCut) :
+    x ≤ y ↔ x.carrier ⊆ y.carrier := Iff.rfl</script></div>
+    </div>
+    <p class="mlnote"><span class="ml-tag ill">Illustrative</span> In the Cauchy world Mathlib's order is <code>Real.le</code>, defined via positivity of Cauchy sequences — not set inclusion. “≤ is ⊆” is the cut construction's signature advantage.</p>
+  </figure>
+
+  <figure class="pair">
+    <figcaption>Addition is the elementwise sumset; zero is the cut of all negative rationals. The additive
+    inverse is the subtle one — the slack <span class="im">r&gt;0</span> deletes the would-be maximum.</figcaption>
+    <div class="cols">
+      <div class="math-side"><div class="kx"></div><script type="text/latex">\begin{aligned}\alpha+\beta&:=\{a+b:a\in\alpha,\,b\in\beta\},\quad 0^{*}:=\{p\in\mathbb{Q}:p<0\},\\[2pt] -\alpha&:=\{p\in\mathbb{Q}:\exists r>0,\ -p-r\notin\alpha\},\\[2pt] &\quad\ \alpha+(-\alpha)=0^{*}.\end{aligned}</script></div>
+      <div class="lean-side"><div class="lean-label">Lean · illustrative (not Mathlib)</div><pre><code class="lean"></code></pre><script type="text/lean">-- ILLUSTRATIVE sketch — not Mathlib.
+-- def add (x y : DedekindCut) : DedekindCut where
+--   carrier := { s : ℚ | ∃ a ∈ x.carrier, ∃ b ∈ y.carrier, s = a + b }
+--   ...  -- the four cut axioms
+-- def neg (x : DedekindCut) : DedekindCut where
+--   carrier := { p : ℚ | ∃ r : ℚ, 0 < r ∧ (-p - r) ∉ x.carrier }
+--   ...</script></div>
+    </div>
+    <p class="mlnote"><span class="ml-tag ill">Illustrative</span> The naive <span class="im">-\alpha=\{-p:p\notin\alpha\}</span> can <em>retain</em> a maximum (exactly when α is a rational cut <span class="im">q^{*}</span>); Rudin's “∃ <span class="im">r&gt;0</span> with <span class="im">-p-r\notin\alpha</span>” strips off precisely that boundary point.</p>
+  </figure>
+
+  <figure class="pair">
+    <figcaption>ℚ embeds order- and field-isomorphically as <span class="im">q\mapsto q^{*}=\{p\in\mathbb{Q}:p&lt;q\}</span>.
+    The rational cuts are exactly those whose complement has a least element.</figcaption>
+    <div class="cols">
+      <div class="math-side"><div class="kx"></div><script type="text/latex">\iota(q)=q^{*}:=\{p\in\mathbb{Q}:p<q\},\qquad p<q\iff p^{*}<q^{*}.</script></div>
+      <div class="lean-side"><div class="lean-label">Lean · illustrative (not Mathlib)</div><pre><code class="lean"></code></pre><script type="text/lean">-- ILLUSTRATIVE — not Mathlib.
+def ofRat (r : ℚ) : DedekindCut where
+  carrier  := { q : ℚ | q < r }
+  nonempty := ⟨r - 1, by simp⟩
+  not_univ := ⟨r, by simp⟩
+  downward := fun p q hq hpq => lt_trans hpq hq
+  no_max   := fun q hq => ⟨(q + r) / 2, by
+    have h : q < r := hq
+    refine ⟨by simp only [Set.mem_setOf_eq]; linarith, by linarith⟩⟩</script></div>
+    </div>
+    <p class="mlnote"><span class="ml-tag ill">Illustrative</span> The tactic blocks are sketches (the <code>simp</code>/<code>linarith</code> steps may need adjusting). The midpoint witness <span class="im">(q+r)/2</span> and both inequalities are mathematically sound. Cuts with no least complement-element (e.g. the √2 cut) are the new irrationals.</p>
+  </figure>
+
+  <figure class="viz" id="viz-sqrt2">
+    <h4>The √2 cut — rationals squeezing toward a hole in ℚ</h4>
+    <p class="cap">The cut <span class="im">\alpha=\{p\in\mathbb{Q}:p&lt;0\ \lor\ p^2&lt;2\}</span> has boundary point √2,
+    which is <em>not</em> rational — a genuine gap that the cut names.</p>
+    <svg viewBox="0 0 720 200" role="img" aria-label="The square-root-of-2 Dedekind cut">
+      <rect x="60" y="86" width="372" height="20" fill="#e6d3b3"/>
+      <rect x="432" y="86" width="228" height="20" fill="#cfd9dc"/>
+      <line x1="50" y1="106" x2="670" y2="106" stroke="#1c1a17" stroke-width="1.5"/>
+      <g font-size="12" fill="#6b6357" text-anchor="middle" font-family="Georgia,serif">
+        <line x1="60" y1="102" x2="60" y2="110" stroke="#1c1a17"/><text x="60" y="126">1</text>
+        <line x1="660" y1="102" x2="660" y2="110" stroke="#1c1a17"/><text x="660" y="126">2</text>
+      </g>
+      <!-- left (in A): p^2 < 2, creeping right -->
+      <g font-family="Georgia,serif">
+        <circle cx="300" cy="106" r="3.5" fill="#7a3b2e"/><text x="300" y="80" font-size="11" fill="#7a3b2e" text-anchor="middle">1.41</text>
+        <circle cx="370" cy="106" r="3.5" fill="#7a3b2e"/><text x="370" y="80" font-size="11" fill="#7a3b2e" text-anchor="middle">1.414</text>
+        <circle cx="410" cy="106" r="3.5" fill="#7a3b2e"/><text x="410" y="80" font-size="11" fill="#7a3b2e" text-anchor="middle">1.4142</text>
+      </g>
+      <!-- right (in B): p^2 > 2, creeping left -->
+      <g font-family="Georgia,serif">
+        <circle cx="455" cy="106" r="3.5" fill="#2f5e6f"/><text x="455" y="146" font-size="11" fill="#2f5e6f" text-anchor="middle">1.4143</text>
+        <circle cx="500" cy="106" r="3.5" fill="#2f5e6f"/><text x="500" y="146" font-size="11" fill="#2f5e6f" text-anchor="middle">1.415</text>
+        <circle cx="560" cy="106" r="3.5" fill="#2f5e6f"/><text x="560" y="146" font-size="11" fill="#2f5e6f" text-anchor="middle">1.42</text>
+      </g>
+      <line x1="432" y1="50" x2="432" y2="120" stroke="#7a3b2e" stroke-width="1.6" stroke-dasharray="5 4"/>
+      <circle cx="432" cy="106" r="6" fill="#fff" stroke="#7a3b2e" stroke-width="2.5"/>
+      <text x="432" y="42" text-anchor="middle" font-size="13" fill="#7a3b2e" font-style="italic" font-family="Georgia,serif">√2 ∉ ℚ</text>
+      <text x="245" y="78" font-size="11.5" fill="#7a3b2e" text-anchor="middle" font-family="Georgia,serif">p² &lt; 2  (in α)</text>
+      <text x="600" y="148" font-size="11.5" fill="#2f5e6f" text-anchor="middle" font-family="Georgia,serif">p² &gt; 2  (in ℚ∖α)</text>
+      <text x="360" y="178" font-size="12" fill="#6b6357" text-anchor="middle" font-family="Georgia,serif">no greatest element: from p give q=(2p+2)/(p+2) with p&lt;q and q²&lt;2</text>
+    </svg>
+  </figure>
+
+  <figure class="pair">
+    <figcaption><b>The payoff.</b> Completeness is nearly free: the supremum of a bounded-above family of cuts
+    is their <em>union</em>, which is again a cut.</figcaption>
+    <div class="cols">
+      <div class="math-side"><div class="kx"></div><script type="text/latex">E\neq\varnothing\text{ bounded above}\ \Rightarrow\ \gamma:=\bigcup_{\alpha\in E}\alpha\ \in\mathbb{R}\ \text{ and }\ \gamma=\sup E.</script></div>
+      <div class="lean-side"><div class="lean-label">Lean · illustrative (not Mathlib)</div><pre><code class="lean"></code></pre><script type="text/lean">-- ILLUSTRATIVE — not Mathlib.
+-- def sSup (E : Set DedekindCut) (hE : E.Nonempty)
+--     (hbdd : ∃ β, ∀ α ∈ E, α ≤ β) : DedekindCut where
+--   carrier  := { q : ℚ | ∃ α ∈ E, q ∈ α.carrier }   -- ⋃ α∈E, α
+--   nonempty := ...   -- from E nonempty
+--   not_univ := ...   -- from the upper bound β ≠ ℚ
+--   downward := ...   -- union of downward-closed is downward-closed
+--   no_max   := ...   -- each α has no max ⇒ neither does the union</script></div>
+    </div>
+    <p class="mlnote"><span class="ml-tag ill">Illustrative</span> Each axiom is immediate: nonempty (E ≠ ∅), proper (an upper bound β ≠ ℚ contains γ), downward-closed (union of such), no max (membership lands in some α with no max). In the Cauchy construction completeness instead needs a limiting sequence and an ε–δ argument — here it is pure set theory.</p>
+  </figure>
+
+  <figure class="viz" id="viz-union">
+    <h4>Least upper bound = union of cuts</h4>
+    <p class="cap">For a bounded-above family <span class="im">\alpha_1\subseteq\alpha_2\subseteq\alpha_3</span>,
+    the supremum is simply the union <span class="im">\gamma=\bigcup\alpha_i</span> — and it is again a cut.</p>
+    <svg viewBox="0 0 720 240" role="img" aria-label="Supremum of cuts is their union">
+      <defs>
+        <marker id="dn" markerWidth="9" markerHeight="9" refX="4.5" refY="8" orient="auto"><path d="M1,1 L4.5,8 L8,1" fill="none" stroke="#6b6357" stroke-width="1.4"/></marker>
+      </defs>
+      <!-- upper bound -->
+      <line x1="600" y1="20" x2="600" y2="210" stroke="#2f5e6f" stroke-width="1.4" stroke-dasharray="4 4"/>
+      <text x="600" y="16" text-anchor="middle" font-size="12" fill="#2f5e6f" font-family="Georgia,serif">upper bound β</text>
+      <!-- bars -->
+      <g font-family="Georgia,serif" font-size="12" fill="#6b6357">
+        <rect x="60" y="34" width="300" height="16" fill="#e6d3b3"/><circle cx="360" cy="42" r="5" fill="#fff" stroke="#7a3b2e" stroke-width="2.2"/><text x="372" y="46" fill="#7a3b2e">α₁</text>
+        <rect x="60" y="74" width="430" height="16" fill="#e6d3b3"/><circle cx="490" cy="82" r="5" fill="#fff" stroke="#7a3b2e" stroke-width="2.2"/><text x="502" y="86" fill="#7a3b2e">α₂</text>
+        <rect x="60" y="114" width="520" height="16" fill="#e6d3b3"/><circle cx="580" cy="122" r="5" fill="#fff" stroke="#7a3b2e" stroke-width="2.2"/><text x="592" y="126" fill="#7a3b2e">α₃</text>
+      </g>
+      <!-- arrows down to union -->
+      <line x1="360" y1="52" x2="360" y2="176" stroke="#6b6357" stroke-width="1.2" marker-end="url(#dn)"/>
+      <line x1="490" y1="92" x2="490" y2="176" stroke="#6b6357" stroke-width="1.2" marker-end="url(#dn)"/>
+      <line x1="580" y1="132" x2="580" y2="176" stroke="#6b6357" stroke-width="1.2" marker-end="url(#dn)"/>
+      <!-- union bar -->
+      <rect x="60" y="180" width="585" height="22" fill="#d8c39a"/><circle cx="645" cy="191" r="6" fill="#fff" stroke="#7a3b2e" stroke-width="2.5"/>
+      <text x="350" y="196" text-anchor="middle" font-size="14" fill="#7a3b2e" font-family="Georgia,serif">γ = ⋃ αᵢ = sup E  (again a cut)</text>
+      <text x="60" y="226" font-size="12" fill="#6b6357" font-family="Georgia,serif">nonempty ✓ &nbsp; proper (≤ β) ✓ &nbsp; downward-closed ✓ &nbsp; no max ✓</text>
+    </svg>
+  </figure>
+
+  <!-- ===================== COMPARISON ===================== -->
+  <h2>3 · Cauchy vs Dedekind, at a glance</h2>
+  <table class="cmp">
+    <thead><tr><th scope="col">Aspect</th><th scope="col">Cauchy sequences</th><th scope="col">Dedekind cuts</th></tr></thead>
+    <tbody>
+      <tr><th scope="row">Core idea</th><td>Complete the metric: a real is the formal limit of a rational Cauchy sequence.</td><td>Fill order-gaps: a real is the set of all rationals to its left.</td></tr>
+      <tr><th scope="row">What an element IS</th><td>An equivalence class of rational Cauchy sequences under “difference → 0” (a quotient).</td><td>A single subset <span class="im">\alpha\subseteq\mathbb{Q}</span> satisfying three cut axioms.</td></tr>
+      <tr><th scope="row">Equality</th><td><span class="im">a_n\equiv b_n</span> iff <span class="im">\forall\varepsilon&gt;0</span> eventually <span class="im">|a_n-b_n|\le\varepsilon</span> — must quotient.</td><td><span class="im">\alpha=\beta</span> iff equal as sets — no quotient needed.</td></tr>
+      <tr><th scope="row">Ordering</th><td>Via positivity of representative sequences; comparing reps takes work (Tao §5.4).</td><td><span class="im">\alpha\le\beta</span> is inclusion <span class="im">\alpha\subseteq\beta</span>; trichotomy is automatic.</td></tr>
+      <tr><th scope="row">Completeness / LUB</th><td>Harder: build a limiting sequence and run an ε–δ limit-of-limits argument.</td><td>Almost free: sup of a bounded family is the <em>union</em>; recheck three axioms.</td></tr>
+      <tr><th scope="row">Arithmetic</th><td>Easy: <span class="im">+,\times,-,{}^{-1}</span> lift termwise; axioms reduce to routine ε-arguments.</td><td>Awkward: addition is clean, but <span class="im">-\alpha</span> needs a slack term and × a 4-case sign split.</td></tr>
+      <tr><th scope="row">Embedding of ℚ</th><td><span class="im">q\mapsto\mathrm{LIM}</span>(constant <span class="im">q</span>); injective ring hom.</td><td><span class="im">q\mapsto q^{*}=\{p:p&lt;q\}</span>; order- &amp; field-iso onto the rational cuts.</td></tr>
+      <tr><th scope="row">Lean / Mathlib uses</th><td><b>This one.</b> Mathlib: <code>Real</code> wraps <code>Quotient CauSeq.equiv</code>; companion: <code>Quotient CauchySequence.instSetoid</code>.</td><td>Not used. No order-theoretic cut type in Mathlib; <code>IsDedekindDomain</code> is unrelated algebra.</td></tr>
+      <tr><th scope="row">Main annoyance</th><td>Carrying classes &amp; proving operations representative-independent; needs classical logic for the LIM dummy.</td><td>The additive-inverse slack and multiplication's sign-case explosion; making ℝ a field is laborious.</td></tr>
+      <tr><th scope="row">Generalizes to</th><td>Any metric/normed completion — reused verbatim for the p-adics.</td><td>Order completions of linear orders (Dedekind–MacNeille); less suited to analysis.</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ===================== SQRT2 ===================== -->
+  <h2>4 · The same √2, two ways</h2>
+  <div class="sqrt2">
+    <p>√2 is the cleanest witness to the holes in ℚ, and it surfaces in both constructions.</p>
+    <h3>Cauchy view</h3>
+    <p>Take any rational sequence converging to √2 — the Heron iteration
+    <span class="im">a_0=1,\ a_{n+1}=\tfrac{a_n}{2}+\tfrac{1}{a_n}</span>, giving
+    <span class="im">1,\tfrac{3}{2},\tfrac{17}{12},\tfrac{577}{408},\dots</span>, or simply the decimal
+    truncations <span class="im">1,1.4,1.41,1.414,\dots</span>. Each is a perfectly good rational Cauchy
+    sequence, yet has <em>no</em> limit inside ℚ. The real √2 <em>is</em>, by definition, the class
+    <span class="im">\mathrm{LIM}\,a_n</span>; any other sequence squeezing toward the same point is
+    identified with it (their termwise difference → 0). In the companion this is <code>LIM a</code>; in
+    Mathlib, <code>Real.mk</code> of the corresponding <code>CauSeq ℚ abs</code>.</p>
+    <h3>Dedekind view</h3>
+    <p>The same √2 is instead the single set</p>
+    <div class="kx" style="margin:.4rem 0"></div><script type="text/latex">\alpha=\{\,p\in\mathbb{Q}:p<0\ \lor\ p^{2}<2\,\}.</script>
+    <p>It is a genuine cut — nonempty (<span class="im">0\in\alpha</span>), proper
+    (<span class="im">2\notin\alpha</span> since <span class="im">2^2=4&gt;2</span>), downward-closed, and with
+    no greatest element. For the non-trivial case <span class="im">p&gt;0,\ p^2&lt;2</span>, the nudge</p>
+    <div class="kx" style="margin:.4rem 0"></div><script type="text/latex">q=\frac{2p+2}{p+2}\quad\text{gives}\quad q-p=\frac{2-p^{2}}{p+2}>0,\qquad q^{2}-2=\frac{2(p^{2}-2)}{(p+2)^{2}}<0,</script>
+    <p>so <span class="im">q&gt;p</span> and <span class="im">q^2&lt;2</span>: a strictly larger element still
+    inside α. Because no rational squares to 2, α's complement has no least element, so α is a brand-new
+    real with <span class="im">\alpha^2=2^{*}</span>.</p>
+    <p style="margin-bottom:0"><b>The two pictures dovetail:</b> the Cauchy sequence
+    <span class="im">1,1.4,1.41,\dots</span> is precisely a sequence of rationals marching rightward through
+    the cut α toward its irrational boundary. One construction names √2 by the <em>process</em> that
+    approaches it; the other by the <em>set</em> of everything beneath it.</p>
+  </div>
+
+  <h2>5 · Further reading</h2>
+  <ul class="reading">
+    <li><a href="../Analysis/Section_5_1.lean">Companion · Section 5.1</a> — rational Cauchy sequences (local source).</li>
+    <li><a href="../Analysis/Section_5_2.lean">Companion · Section 5.2</a> — equivalence of Cauchy sequences.</li>
+    <li><a href="../Analysis/Section_5_3.lean">Companion · Section 5.3</a> — <code>Real</code> as the quotient, <code>LIM</code>, +, ×, ℚ-embedding.</li>
+    <li><a href="https://leanprover-community.github.io/mathlib4_docs/Mathlib/Data/Real/Basic.html">Mathlib · Data.Real.Basic</a> — ℝ as a Cauchy-sequence quotient.</li>
+    <li><a href="https://leanprover-community.github.io/mathlib4_docs/Mathlib/Algebra/Order/CauSeq/Completion.html">Mathlib · CauSeq.Completion</a> — <code>Cauchy abs = Quotient CauSeq.equiv</code>.</li>
+    <li><a href="https://en.wikipedia.org/wiki/Dedekind_cut">Wikipedia · Dedekind cut</a> &nbsp;·&nbsp; <a href="https://en.wikipedia.org/wiki/Construction_of_the_real_numbers">Construction of the real numbers</a>.</li>
+    <li><a href="https://arxiv.org/pdf/1506.03467">“The real numbers — a survey of constructions” (arXiv:1506.03467)</a>.</li>
+  </ul>
+
+  <footer>
+    A side-project for the <a href="../MISSION.md">Lean-formalization learning workspace</a>.
+    Cauchy code is faithful to this repo's <code>Chapter5</code>; the Dedekind Lean is illustrative
+    (Mathlib uses Cauchy). Built from source-verified definitions. &nbsp;·&nbsp;
+    Math rendered with <a href="https://katex.org">KaTeX</a>.
+  </footer>
+</div>
+
+<script>
+  // ---- Lean mini-highlighter: reads raw code from <script type="text/lean"> ----
+  function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  var KW = /\b(structure|class|instance|abbrev|def|theorem|lemma|where|extends|fun|by|if|then|else|open|noncomputable|in|do|match|with|Prop|Set|Quotient|Setoid|sorry)\b/g;
+  function hi(line){
+    var ci = line.indexOf('--');
+    var code = ci >= 0 ? line.slice(0, ci) : line;
+    var rest = ci >= 0 ? line.slice(ci) : '';
+    var out = esc(code).replace(KW, '<span class="kw">$1</span>');
+    if (rest) out += '<span class="cmt">' + esc(rest) + '</span>';
+    return out;
+  }
+  function renderLean(){
+    document.querySelectorAll('script[type="text/lean"]').forEach(function(sc){
+      var pre = sc.parentElement.querySelector('code.lean');
+      if (!pre) return;
+      var raw = sc.textContent.replace(/^\n/, '').replace(/\s+$/,'');
+      pre.innerHTML = raw.split('\n').map(hi).join('\n');
+    });
+  }
+  // ---- KaTeX rendering (with graceful offline fallback) ----
+  function renderMath(){
+    var ok = (typeof katex !== 'undefined');
+    document.querySelectorAll('script[type="text/latex"]').forEach(function(sc){
+      var target = sc.parentElement.querySelector('.kx') ||
+                   (function(){ var d=document.createElement('div'); d.className='kx'; sc.parentElement.insertBefore(d, sc); return d; })();
+      var tex = sc.textContent.trim();
+      if (ok){
+        try { katex.render(tex, target, {displayMode:true, throwOnError:false}); }
+        catch(e){ target.innerHTML = '<span class="kx-fallback">'+esc(tex)+'</span>'; }
+      } else {
+        target.innerHTML = '<span class="kx-fallback">'+esc(tex)+'</span>';
+      }
+    });
+    // inline math written as <span class="im">…</span>
+    if (ok){
+      document.querySelectorAll('span.im').forEach(function(el){
+        try { katex.render(el.textContent, el, {throwOnError:false}); } catch(e){}
+      });
+    }
+  }
+  window.addEventListener('load', function(){
+    renderLean();
+    renderMath();
+  });
+</script>
+</body>
+</html>

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lesson 2 · Induction in Lean</title>
+<style>
+  :root{
+    --ink:#1a1a1a; --muted:#6b6357; --rule:#ddd5c6; --bg:#fdfaf3;
+    --code-bg:#f1ece0; --accent:#7a3b2e; --good:#2f6f4f; --bad:#9a3024;
+    --good-bg:#e9f2ea; --bad-bg:#f7e9e6; --card:#fbf6ec;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--bg); color:var(--ink);
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    line-height:1.62; margin:0; padding:3.2rem 1.25rem 6rem;
+    -webkit-font-smoothing:antialiased; font-size:1.06rem;
+  }
+  .wrap{max-width:44rem; margin:0 auto}
+  .kicker{font-size:.78rem; text-transform:uppercase; letter-spacing:.16em;
+          color:var(--accent); margin:0 0 .5rem}
+  h1{font-size:2.1rem; font-weight:600; line-height:1.12; margin:0 0 .5rem; letter-spacing:-.015em}
+  .dek{color:var(--muted); font-style:italic; font-size:1.15rem; margin:0 0 2.2rem}
+  h2{font-size:1.32rem; font-weight:600; margin:2.6rem 0 .7rem; letter-spacing:-.01em}
+  p{margin:0 0 1rem}
+  code{font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;
+       background:var(--code-bg); padding:.08em .35em; border-radius:3px; font-size:.84em}
+  a{color:var(--accent)}
+  .lead::first-letter{font-size:3.1rem; line-height:.8; float:left; padding:.06em .08em 0 0; font-weight:600; color:var(--accent)}
+  .idea{background:var(--card); border-left:3px solid var(--accent);
+        padding:1rem 1.2rem; border-radius:0 6px 6px 0; margin:1.4rem 0}
+  .idea b{color:var(--accent)}
+  pre{background:#262019; color:#f3ead9; padding:1rem 1.1rem; border-radius:8px;
+      overflow:auto; font-size:.9rem; line-height:1.55; margin:1.2rem 0}
+  pre code{background:none; padding:0; color:inherit; font-size:1em}
+  pre .c{color:#b6a489}
+  pre .k{color:#e0a96d}
+  /* state trace */
+  .state{display:grid; grid-template-columns:1fr; gap:.5rem; margin:1.2rem 0}
+  .frame{border:1px solid var(--rule); border-radius:8px; background:var(--card); padding:.7rem 1rem}
+  .frame .lbl{font-size:.7rem; text-transform:uppercase; letter-spacing:.12em; color:var(--muted); margin-bottom:.3rem}
+  .frame code{background:none; padding:0; font-size:.92rem; white-space:pre-wrap}
+  .turn{color:var(--accent); font-weight:700}
+  .arrow{text-align:center; color:var(--muted); font-size:1rem; margin:.05rem 0}
+  /* flip comparison */
+  .flip{width:100%; border-collapse:collapse; margin:1.2rem 0; font-size:.97rem}
+  .flip th,.flip td{border:1px solid var(--rule); padding:.55rem .7rem; text-align:left; vertical-align:top}
+  .flip th{background:var(--card); font-weight:600}
+  .flip td:first-child{color:var(--muted); width:11rem}
+  .flip code{background:none; padding:0}
+  .mnem{font-style:italic; color:var(--accent); margin:.4rem 0 0}
+  /* two-syntax cards */
+  .two{display:grid; grid-template-columns:1fr 1fr; gap:.9rem; margin:1.2rem 0}
+  .two .syn{border:1px solid var(--rule); border-radius:8px; background:var(--card); padding:.7rem .9rem}
+  .two .syn h4{margin:.1rem 0 .4rem; font-size:.92rem; color:var(--accent)}
+  .two pre{margin:.3rem 0 0; font-size:.78rem; padding:.7rem .8rem}
+  @media(max-width:640px){.two{grid-template-columns:1fr}}
+  /* quiz */
+  .quiz{border:1px solid var(--rule); border-radius:10px; padding:1.1rem 1.2rem; margin:1.3rem 0; background:var(--card)}
+  .quiz .q{font-weight:600; margin:0 0 .8rem}
+  .quiz .q code{font-weight:400}
+  .opt{display:block; width:100%; text-align:left; font:inherit; cursor:pointer;
+       background:var(--bg); border:1px solid var(--rule); border-radius:7px;
+       padding:.55rem .8rem; margin:.4rem 0; transition:background .12s,border-color .12s}
+  .opt:hover{border-color:var(--accent)}
+  .opt:disabled{cursor:default}
+  .opt.right{background:var(--good-bg); border-color:var(--good); color:var(--good)}
+  .opt.wrong{background:var(--bad-bg); border-color:var(--bad); color:var(--bad)}
+  .fb{font-size:.95rem; margin:.6rem 0 0; padding-left:.2rem; display:none}
+  .fb.show{display:block}
+  .fb.ok{color:var(--good)} .fb.no{color:var(--bad)}
+  ol.steps{padding-left:1.3rem} ol.steps li{margin:.45rem 0}
+  .src{display:flex; gap:.9rem; align-items:flex-start; background:#efe7d6;
+       border-radius:10px; padding:1rem 1.2rem; margin:1.6rem 0}
+  .src .star{font-size:1.5rem; line-height:1}
+  .src a{font-weight:600}
+  .ex{border:1px solid var(--rule); border-left:3px solid var(--good); border-radius:0 8px 8px 0;
+      background:var(--card); padding:.9rem 1.1rem; margin:1.2rem 0}
+  .ex h4{margin:.1rem 0 .4rem; color:var(--good); font-size:1rem}
+  .ask{border:1px dashed var(--accent); border-radius:10px; padding:1rem 1.2rem;
+       margin:1.8rem 0; background:var(--card)}
+  .ask b{color:var(--accent)}
+  footer{margin-top:3rem; padding-top:1rem; border-top:1px solid var(--rule);
+         color:var(--muted); font-size:.92rem; display:flex; flex-wrap:wrap; gap:1.2rem; justify-content:space-between}
+  footer a{color:var(--accent)}
+  sup.c{font-size:.7em; color:var(--accent)}
+  hr.sep{border:none;border-top:1px solid var(--rule);margin:2.5rem 0 1rem}
+  @media print{ body{background:#fff} .opt{display:none} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="kicker">Lesson 2 · The induction tactic</p>
+  <h1>Induction in Lean</h1>
+  <p class="dek">You proved facts about ℕ by induction long before you met Lean. This lesson
+  is only about how to hand that argument to the machine — and one surprise about which half
+  of a proof is “free.”</p>
+
+  <p class="lead">In <a href="0001-your-first-lean-proof.html">Lesson 1</a> you learned that a
+  Lean proof is a goal you steer to <code>No goals</code> with tactics, and you met
+  <code>rfl</code> and <code>rw</code>. Those two close <em>finite</em> goals. But almost
+  everything in Tao Chapter 2 — <code>n + 0 = n</code>, commutativity, associativity — is a
+  statement about <em>all</em> natural numbers, and you proved them by Tao’s Axiom 2.5, the
+  principle of induction. Lean has one tactic for exactly that.</p>
+
+  <div class="idea">
+    <b>The one idea.</b> Induction in Lean is: <b>name the variable, and Lean hands you back
+    two goals</b> — a <b>base case</b> (the statement at <code>0</code>) and a <b>successor
+    case</b> that already has the <b>induction hypothesis</b> sitting in your context. You
+    close each with the tactics you already know. You never build the chain of implications by
+    hand; Lean stitches the base and step together for you.<sup class="c">1</sup>
+  </div>
+
+  <p>That is Axiom 2.5 turned into a machine. Tao says: if <code>P(0)</code> holds and
+  <code>P(n) ⟹ P(n++)</code> for every <code>n</code>, then <code>P</code> holds everywhere.
+  The induction tactic gives you precisely those two obligations and nothing else.</p>
+
+  <h2>The companion speaks two dialects — recognise both</h2>
+
+  <p>The <code>teorth/analysis</code> companion ships Axiom 2.5 as an ordinary theorem,
+  <code>Nat.induction</code>,<sup class="c">2</sup> so you invoke it with <code>apply</code>.
+  Mainstream Lean has a built-in <code>induction</code> tactic. You’ll see both; they deliver
+  the same two goals.</p>
+
+  <div class="two">
+    <div class="syn">
+      <h4>Companion house style</h4>
+<pre><code><span class="c">-- goal: n + 0 = n</span>
+revert n; <span class="k">apply</span> induction
+. <span class="c">-- base: ⊢ 0 + 0 = 0</span>
+  exact zero_add 0
+<span class="k">intro</span> n ih  <span class="c">-- step</span>
+<span class="c">-- ih : n + 0 = n</span>
+<span class="c">-- ⊢ n++ + 0 = n++</span></code></pre>
+    </div>
+    <div class="syn">
+      <h4>Mainstream Lean / Mathlib</h4>
+<pre><code><span class="c">-- goal: ∀ n, P n</span>
+<span class="k">induction</span> n <span class="k">with</span>
+| zero =&gt;
+    <span class="c">-- ⊢ P 0</span>
+    ..
+| succ k ih =&gt;
+    <span class="c">-- ih : P k</span>
+    <span class="c">-- ⊢ P (k++)</span></code></pre>
+    </div>
+  </div>
+
+  <p>Two things to internalise. First, <code>revert n</code> turns your goal <code>P n</code>
+  (where <code>n</code> is a fixed local) back into <code>∀ n, P n</code> so that
+  <code>apply induction</code> matches — and, in general, reverting any variable that still
+  mentions <code>n</code> is what keeps your induction hypothesis <em>strong enough</em> to
+  use.<sup class="c">3</sup> Second, the name <code>ih</code> is <em>yours</em>, not a keyword:
+  it is just what you typed to name the hypothesis Tao calls “whenever <code>P(n)</code> is
+  true.”</p>
+
+  <h2>The surprise: which side is free?</h2>
+
+  <p>Here is the thing that trips up every mathematician arriving in Lean. On paper,
+  <code>0 + n = n</code> and <code>n + 0 = n</code> feel equally trivial. In Lean, <em>one of
+  them is free and the other needs a full induction</em> — and which is which depends entirely
+  on how addition was <em>defined</em>.</p>
+
+  <table class="flip">
+    <tr><th></th><th>Companion (Tao Def 2.2.1)</th><th>NNG / Mathlib</th></tr>
+    <tr><td>recursion is on…</td><td>the <b>first</b> argument</td><td>the <b>second</b> argument</td></tr>
+    <tr><td>free, by <code>rfl</code></td><td><code>0 + m = m</code><br><span style="color:var(--muted)">(zero_add)</span></td><td><code>n + 0 = n</code><br><span style="color:var(--muted)">(add_zero)</span></td></tr>
+    <tr><td>needs <b>induction</b></td><td><code>n + 0 = n</code><br><span style="color:var(--muted)">(add_zero)</span></td><td><code>0 + n = n</code><br><span style="color:var(--muted)">(zero_add)</span></td></tr>
+  </table>
+
+  <p>The companion follows Tao: <code>0 + m := m</code> and <code>(n++) + m := (n+m)++</code>,
+  recursing on the left. So <code>0 + m = m</code> is literally the definition unfolding
+  (<code>rfl</code>), while <code>n + 0 = n</code> leaves the recursed variable <code>n</code>
+  unresolved and must be proved by induction.<sup class="c">4</sup> The Natural Number Game
+  does the mirror image, so there it’s <code>n + 0 = n</code> that’s free. Same two facts,
+  opposite difficulty.</p>
+
+  <p class="mnem">Don’t memorise “zero_add is easy.” Memorise: <b>the recursed argument is the
+  easy side.</b></p>
+
+  <h2>Watch a real induction run</h2>
+  <p>This is the companion’s actual proof of <b>Lemma 2.2.2</b>, <code>n + 0 = n</code>
+  (<code>Nat.add_zero</code>). Follow the tactic state, exactly as in Lesson 1.</p>
+
+  <div class="state">
+    <div class="frame"><div class="lbl">Goal</div>
+      <code>n : Nat &nbsp;<span class="turn">⊢</span>&nbsp; n + 0 = n</code></div>
+    <div class="arrow">▼ &nbsp;<code>revert n; apply induction</code></div>
+    <div class="frame"><div class="lbl">Two goals — base, then step</div>
+      <code><span class="turn">⊢</span> 0 + 0 = 0
+<span class="turn">⊢</span> ∀ n, n + 0 = n → n++ + 0 = n++</code></div>
+    <div class="arrow">▼ &nbsp;<code>. exact zero_add 0</code> &nbsp;<span style="color:var(--muted)">(base: 0+0=0 is zero_add, free by rfl)</span></div>
+    <div class="frame"><div class="lbl">Base closed — step remains</div>
+      <code><span class="turn">⊢</span> ∀ n, n + 0 = n → n++ + 0 = n++</code></div>
+    <div class="arrow">▼ &nbsp;<code>intro n ih</code></div>
+    <div class="frame"><div class="lbl">Successor case — note the hypothesis</div>
+      <code>n : Nat,&nbsp; ih : n + 0 = n &nbsp;<span class="turn">⊢</span>&nbsp; n++ + 0 = n++</code></div>
+    <div class="arrow">▼ &nbsp;<code>calc (n++) + 0 = (n + 0)++ := by rfl</code> &nbsp;<span style="color:var(--muted)">(succ_add is free)</span></div>
+    <div class="arrow">▼ &nbsp;<code>_ = n++ := by rw [ih]</code></div>
+    <div class="frame" style="border-color:var(--good)"><div class="lbl" style="color:var(--good)">Tactic state</div>
+      <code style="color:var(--good)">No goals</code></div>
+  </div>
+
+  <p>The whole proof is: split with induction, close the base with the free lemma, then in the
+  step rewrite with the <em>induction hypothesis</em> <code>ih</code>. That shape repeats for
+  commutativity, associativity, everything.</p>
+
+  <h2>Check yourself</h2>
+  <p>Recall, don’t reread.</p>
+
+  <div class="quiz" data-a="1" data-exp="Addition recurses on the first argument, so 0 + m = m reduces by rfl (it is recurse_zero), but in n + 0 = n the recursed first argument is a variable that cannot reduce — so it needs induction on n.">
+    <div class="q">1. In the companion, where addition recurses on the first argument, which equation needs a genuine induction rather than holding by <code>rfl</code>?</div>
+    <button class="opt">The equation 0 + m = m, since the left summand is fixed there</button>
+    <button class="opt">The equation n + 0 = n, since the recursed argument is a variable</button>
+    <button class="opt">Neither equation, because both reduce to rfl after unfolding add</button>
+    <button class="opt">Both equations, because addition is defined by a recursion scheme</button>
+    <p class="fb"></p>
+  </div>
+
+  <div class="quiz" data-a="1" data-exp="The successor case gives you the predecessor n together with ih — the proof that the statement already holds for n. You use ih to discharge the goal stated for n++.">
+    <div class="q">2. After <code>revert n; apply induction</code> then <code>intro n ih</code>, what exactly is <code>ih</code> in the successor case?</div>
+    <button class="opt">The full goal that still remains to be proven for the value n++</button>
+    <button class="opt">The proof that the statement already holds for the predecessor n</button>
+    <button class="opt">A fresh arbitrary natural number with no properties attached yet</button>
+    <button class="opt">The base-case proof that the statement is true at the value zero</button>
+    <p class="fb"></p>
+  </div>
+
+  <div class="quiz" data-a="1" data-exp="Reverting turns the goal P n into ∀ n, P n so apply induction can match it; generalizing dependent variables this way also keeps the induction hypothesis universally quantified, hence strong enough to use.">
+    <div class="q">3. Why does the companion write <code>revert n</code> before <code>apply induction</code>, and what extra safety does reverting give in general?</div>
+    <button class="opt">It renames the variable n so that later rewrites find a fresh target</button>
+    <button class="opt">It exposes the forall so apply matches and keeps the hypothesis general</button>
+    <button class="opt">It deletes the variable n entirely so the base case becomes trivial</button>
+    <button class="opt">It converts the proposition into a decidable form that decide can close</button>
+    <p class="fb"></p>
+  </div>
+
+  <h2>Now do it for real (≈20 min)</h2>
+  <p>The tightest feedback loop for induction is still the <b>Natural Number Game</b>. You
+  finished Tutorial World (just <code>rfl</code> and <code>rw</code>); <b>Addition World</b> is
+  where induction first appears — and its very first level is the inductive direction.</p>
+
+  <ol class="steps">
+    <li>Open the game and enter <b>Addition World, Level 1</b>. Goal:
+        <code>0 + n = n</code> (this is <code>zero_add</code>). Recall: in NNG addition recurses
+        on the <em>second</em> argument, so <em>this</em> is the side that needs induction.</li>
+    <li>Type <code>induction n with d hd</code>. You get two goals: base <code>0 + 0 = 0</code>,
+        and a successor goal with <code>hd : 0 + d = d</code> where you must prove
+        <code>0 + succ d = succ d</code>.
+        <span style="color:var(--muted)">(NNG writes the successor as <code>succ d</code>, not
+        <code>d++</code> — that <code>++</code> is the companion’s notation.)</span></li>
+    <li>Close the base with <code>rw [add_zero]</code>. In the step, <code>rw [add_succ]</code>
+        turns <code>0 + succ d</code> into <code>succ (0 + d)</code>, then <code>rw [hd]</code>
+        finishes — watch the goal collapse to <code>succ d = succ d</code>.</li>
+    <li>Keep going to the Addition World boss, <code>add_comm</code>. (Tip the game gives you:
+        induct on the <em>right</em> variable, or you’ll strand a <code>+ b</code> you can’t
+        simplify.)</li>
+  </ol>
+
+  <div class="src">
+    <div class="star">★</div>
+    <div><b>Primary source for this lesson — </b>
+      <a href="https://adam.math.hhu.de/#/g/leanprover-community/NNG4">Natural Number Game · Addition World</a>.
+      Per the game itself, <em>“rw, rfl and induction are the only tactics you’ll need to beat
+      Addition, Multiplication, and Power Worlds.”</em> You now have all three.</div>
+  </div>
+
+  <div class="ex">
+    <h4>Your first <code>sorry</code> in this repo — when you’re ready</h4>
+    <p>These are real exercises waiting in <code>Analysis/Section_2_2.lean</code>. They need a
+    local Lean install (we’ll set that up together — just say the word). Two good targets:</p>
+    <p style="margin:.3rem 0"><b>Warm-up (no induction):</b> <code>Nat.succ_eq_add_one : n++ = n + 1</code>
+    — pure rewriting. Try <code>rw [show (1:Nat) = 0++ from rfl, add_succ, add_zero]</code>.</p>
+    <p style="margin:.3rem 0"><b>The real thing (Exercise 2.2.1):</b>
+    <code>Nat.add_assoc : (a + b) + c = a + (b + c)</code> — uses the <em>exact</em> idiom above.
+    Skeleton: <code>revert c; apply induction</code>; base <code>rw [add_zero, add_zero]</code>;
+    then <code>intro c ih</code> and let the goal state guide your <code>add_succ</code>
+    rewrites before finishing with <code>ih</code>.</p>
+  </div>
+
+  <div class="ask">
+    <b>I’m your teacher — use me.</b> When you finish Addition World, tell me: <em>did inducting
+    on the “wrong” variable bite you, and did the recursed-argument rule click?</em> And if you
+    want to attempt <code>add_assoc</code> for real, ask me to set up Lean locally — that’s the
+    natural next step, and Lesson 3 can be your first proof inside this actual repo.
+  </div>
+
+  <hr class="sep">
+  <p style="font-size:.86rem;color:var(--muted)">
+    <b>Notes.</b>
+    <sup class="c">1</sup> The <code>induction</code> tactic and case syntax:
+    <a href="https://lean-lang.org/theorem_proving_in_lean4/Induction_and_Recursion/">Theorem Proving in Lean 4 §Induction and Recursion</a>.
+    &nbsp;<sup class="c">2</sup> <code>Nat.induction</code> (Axiom 2.5 as a theorem):
+    <a href="../Analysis/Section_2_1.lean">Section_2_1.lean:118</a>.
+    &nbsp;<sup class="c">3</sup> Generalising before induction:
+    <a href="https://leanprover-community.github.io/logic_and_proof/the_natural_numbers_and_induction_in_lean.html">Logic and Proof — Induction in Lean</a>.
+    &nbsp;<sup class="c">4</sup> Definition 2.2.1 and the proof of Lemma 2.2.2:
+    <a href="../Analysis/Section_2_2.lean">Section_2_2.lean:38, 64</a>; Tao, <em>Analysis I</em> §2.2.
+  </p>
+
+  <footer>
+    <span>◂ <a href="0001-your-first-lean-proof.html">Lesson 1</a>
+      &nbsp;·&nbsp; Terms: <code>../GLOSSARY.md</code>
+      &nbsp;·&nbsp; Tactics: <a href="../reference/lean-tactics.html">cheat sheet</a></span>
+    <span>Next ▸ <em>Lesson 3 — your first proof inside the repo</em> (set up Lean first)</span>
+  </footer>
+</div>
+
+<script>
+  document.querySelectorAll('.quiz').forEach(function(box){
+    var correct = +box.dataset.a;
+    var explain = box.dataset.exp;
+    var opts = box.querySelectorAll('.opt');
+    var fb = box.querySelector('.fb');
+    opts.forEach(function(opt,i){
+      opt.addEventListener('click', function(){
+        opts.forEach(function(o,j){ o.disabled = true; if(j===correct) o.classList.add('right'); });
+        if(i!==correct) opt.classList.add('wrong');
+        fb.classList.add('show', i===correct ? 'ok' : 'no');
+        fb.textContent = (i===correct ? "✓ " : "✗ ") + explain;
+      });
+    });
+  });
+</script>
+</body>
+</html>

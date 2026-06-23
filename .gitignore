@@ -25,3 +25,11 @@ Claude.md
 **/tobeIgnored/
 **/tmp
 **/docker/
+
+# External reference texts — NOT committed (large, with permanent upstream
+# sources). Re-fetch on a new device with:  bash scripts/fetch-sources.sh
+# See RESOURCES.md for the permanent URL of each.
+ra-master/
+analysis_notes-master/
+taoanalysissolutions-master/
+arXiv-2508.19405v12/
